@@ -12,13 +12,13 @@ term_handler() {
 }
 
 docker_curl() {
-  curl --max-time "${CURL_TIMEOUT}" --no-buffer -s --unix-socket "${DOCKER_SOCK}" "$@"
+  curl --max-time "${CURL_TIMEOUT}" --no-buffer --unix-socket "${DOCKER_SOCK}" "$@"
 }
 
 trap 'kill ${!}; term_handler' SIGTERM
 
 if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
-  
+
   # https://docs.docker.com/engine/api/v1.25/
 
   # Set container selector
@@ -34,7 +34,7 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
 
   while true; do
     sleep ${AUTOHEAL_INTERVAL:=5}
-    
+
     apiUrl="http://localhost/containers/json?filters=\{\"health\":\[\"unhealthy\"\]${labelFilter}\}"
     stopTimeout=".Labels[\"autoheal.stop.timeout\"] // ${AUTOHEAL_DEFAULT_STOP_TIMEOUT:-10}"
     docker_curl "$apiUrl" | \
@@ -46,7 +46,7 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
           echo "$DATE Container name of ($CONTAINER_SHORT_ID) is null, which implies container does not exist - don't restart"
         else
           echo "$DATE Container ${CONTAINER_NAME} ($CONTAINER_SHORT_ID) found to be unhealthy - Restarting container now with ${TIMEOUT}s timeout"
-          docker_curl -f -XPOST "http://localhost/containers/${CONTAINER_ID}/restart?t=${TIMEOUT}" \
+          docker_curl -XPOST "http://localhost/containers/${CONTAINER_ID}/restart?t=${TIMEOUT}" \
             || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
         fi
     done
